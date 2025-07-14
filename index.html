@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI画布对话</title>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+	  <link rel="stylesheet" href="/dist/style.css" />
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#6B7280',
+                        neutral: '#F3F4F6',
+                        dark: '#1F2937'
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .scrollbar-hide {
+                -ms-overflow-style: none;
+                scrollbar-width: none;
+            }
+            .scrollbar-hide::-webkit-scrollbar {
+                display: none;
+            }
+            .text-shadow {
+                text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-inter text-dark min-h-screen overflow-hidden">
+    <div id="app-container" class="relative w-full h-screen flex items-center justify-center p-4">
+        <!-- 对话容器 -->
+        <div id="conversation-container" class="bg-white rounded-xl shadow-2xl overflow-hidden w-full max-w-4xl h-[80vh] max-h-[800px] relative">
+            <!-- 对话区域 -->
+            <div id="chat-area" class="w-full h-full overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100">
+                <!-- 消息将动态添加到这里 -->
+            </div>
+            
+            <!-- 初始居中输入框 -->
+            <div id="initial-input-container" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-md px-4 transition-all duration-300">
+                <div class="bg-white rounded-lg shadow-lg p-4 border border-gray-200 transition-all duration-300 hover:shadow-xl">
+                    <div class="flex items-center">
+                        <i class="fa fa-comment-o text-primary text-xl mr-3"></i>
+                        <h3 class="text-lg font-semibold text-gray-800">开始您的对话</h3>
+                    </div>
+                    <div class="mt-3 relative">
+                        <input id="initial-input" type="text" placeholder="输入您的问题..." 
+                            class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-200" 
+                            autocomplete="off">
+                        <button id="initial-send" class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-primary text-white rounded-full p-2 hover:bg-primary/90 transition-all duration-200">
+                            <i class="fa fa-paper-plane"></i>
+                        </button>
+                    </div>
+                    <p class="mt-2 text-xs text-gray-500 text-center">按 Enter 发送，或点击发送按钮</p>
+                </div>
+            </div>
+            
+            <!-- 浮动输入框 -->
+            <div id="floating-input-container" class="hidden absolute transition-all duration-300 ease-in-out">
+                <div class="bg-white rounded-lg shadow-lg p-2 border border-gray-200 transition-all duration-300 hover:shadow-xl">
+                    <div class="flex items-center">
+                        <input id="floating-input" type="text" placeholder="继续对话..." 
+                            class="px-3 py-2 rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-primary/50 w-full" 
+                            autocomplete="off">
+                        <button id="floating-send" class="ml-2 bg-primary text-white rounded-full p-2 hover:bg-primary/90 transition-all duration-200">
+                            <i class="fa fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 缩放控制 -->
+        <div class="fixed bottom-6 right-6 z-10 flex flex-col gap-2">
+            <button id="zoom-in" class="bg-primary text-white rounded-full p-3 shadow-lg hover:bg-primary/90 transition-all duration-200">
+                <i class="fa fa-search-plus"></i>
+            </button>
+            <button id="zoom-out" class="bg-primary text-white rounded-full p-3 shadow-lg hover:bg-primary/90 transition-all duration-200">
+                <i class="fa fa-search-minus"></i>
+            </button>
+        </div>
+        
+        <!-- 移动控制 -->
+        <div class="fixed bottom-6 left-6 z-10 bg-white rounded-lg shadow-lg p-2">
+            <div class="grid grid-cols-3 gap-1">
+                <div></div>
+                <button id="move-up" class="bg-gray-100 hover:bg-gray-200 rounded p-2 transition-colors">
+                    <i class="fa fa-chevron-up"></i>
+                </button>
+                <div></div>
+                <button id="move-left" class="bg-gray-100 hover:bg-gray-200 rounded p-2 transition-colors">
+                    <i class="fa fa-chevron-left"></i>
+                </button>
+                <div></div>
+                <button id="move-right" class="bg-gray-100 hover:bg-gray-200 rounded p-2 transition-colors">
+                    <i class="fa fa-chevron-right"></i>
+                </button>
+                <div></div>
+                <button id="move-down" class="bg-gray-100 hover:bg-gray-200 rounded p-2 transition-colors">
+                    <i class="fa fa-chevron-down"></i>
+                </button>
+                <div></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // 全局变量
+            let chatArea = document.getElementById('chat-area');
+            let initialInputContainer = document.getElementById('initial-input-container');
+            let floatingInputContainer = document.getElementById('floating-input-container');
+            let initialInput = document.getElementById('initial-input');
+            let floatingInput = document.getElementById('floating-input');
+            let initialSend = document.getElementById('initial-send');
+            let floatingSend = document.getElementById('floating-send');
+            let zoomIn = document.getElementById('zoom-in');
+            let zoomOut = document.getElementById('zoom-out');
+            let moveUp = document.getElementById('move-up');
+            let moveDown = document.getElementById('move-down');
+            let moveLeft = document.getElementById('move-left');
+            let moveRight = document.getElementById('move-right');
+            
+            // 对话状态
+            let conversationState = {
+                scale: 1,
+                offsetX: 0,
+                offsetY: 0,
+                messages: [],
+                currentPosition: { x: 0, y: 0 },
+                containerSize: { width: 10000, height: 10000 },
+                viewportSize: { width: 0, height: 0 },
+                isDragging: false,
+                lastDragX: 0,
+                lastDragY: 0
+            };
+            
+            // 初始化视口大小
+            function updateViewportSize() {
+                conversationState.viewportSize = {
+                    width: chatArea.clientWidth,
+                    height: chatArea.clientHeight
+                };
+            }
+            
+            // 初始化对话区域
+            function initializeChatArea() {
+                updateViewportSize();
+                updateChatAreaTransform();
+                positionInitialInput();
+                
+                // 设置容器大小
+                chatArea.style.width = `${conversationState.containerSize.width}px`;
+                chatArea.style.height = `${conversationState.containerSize.height}px`;
+            }
+            
+            // 定位初始输入框
+            function positionInitialInput() {
+                const rect = chatArea.getBoundingClientRect();
+                initialInputContainer.style.left = `${(rect.width - initialInputContainer.clientWidth) / 2}px`;
+                initialInputContainer.style.top = `${(rect.height - initialInputContainer.clientHeight) / 2}px`;
+            }
+            
+            // 更新对话区域变换
+            function updateChatAreaTransform() {
+                chatArea.style.transform = `scale(${conversationState.scale}) translate(${(conversationState.offsetX / conversationState.scale)}px, ${(conversationState.offsetY / conversationState.scale)}px)`;
+            }
+            
+            // 检查并调整容器大小
+            function checkAndExpandContainer() {
+                const minPadding = 200;
+                let needsResize = false;
+                
+                // 左侧边界检查
+                if (conversationState.offsetX < minPadding) {
+                    conversationState.containerSize.width += minPadding - conversationState.offsetX;
+                    chatArea.style.width = `${conversationState.containerSize.width}px`;
+                    needsResize = true;
+                }
+                
+                // 顶部边界检查
+                if (conversationState.offsetY < minPadding) {
+                    conversationState.containerSize.height += minPadding - conversationState.offsetY;
+                    chatArea.style.height = `${conversationState.containerSize.height}px`;
+                    needsResize = true;
+                }
+                
+                // 右侧边界检查
+                const rightOffset = conversationState.containerSize.width - conversationState.offsetX - conversationState.viewportSize.width;
+                if (rightOffset < minPadding) {
+                    conversationState.containerSize.width += minPadding - rightOffset;
+                    chatArea.style.width = `${conversationState.containerSize.width}px`;
+                    needsResize = true;
+                }
+                
+                // 底部边界检查
+                const bottomOffset = conversationState.containerSize.height - conversationState.offsetY - conversationState.viewportSize.height;
+                if (bottomOffset < minPadding) {
+                    conversationState.containerSize.height += minPadding - bottomOffset;
+                    chatArea.style.height = `${conversationState.containerSize.height}px`;
+                    needsResize = true;
+                }
+                
+                if (needsResize) {
+                    console.log('容器已扩展:', conversationState.containerSize);
+                }
+                
+                return needsResize;
+            }
+            
+            // 添加消息到对话区域
+            function addMessage(text, x, y, isUser = true) {
+                if (!text.trim()) return;
+                
+                const messageId = `msg-${Date.now()}`;
+                const message = {
+                    id: messageId,
+                    text,
+                    x,
+                    y,
+                    isUser
+                };
+                
+                conversationState.messages.push(message);
+                
+                // 创建消息元素
+                const messageElement = document.createElement('div');
+                messageElement.id = messageId;
+                messageElement.className = `absolute transition-all duration-300 opacity-0 transform translate-y-4 ${isUser ? 'user-message' : 'ai-message'}`;
+                messageElement.style.left = `${x}px`;
+                messageElement.style.top = `${y}px`;
+                
+                // 消息内容
+                messageElement.innerHTML = `
+                    <div class="bg-white rounded-lg shadow-md p-3 max-w-xs break-words ${isUser ? 'border-l-4 border-primary' : 'border-l-4 border-gray-400'}">
+                        <div class="flex items-start">
+                            <div class="mr-3 mt-0.5">
+                                <div class="w-8 h-8 rounded-full flex items-center justify-center ${isUser ? 'bg-primary text-white' : 'bg-gray-400 text-white'}">
+                                    ${isUser ? '<i class="fa fa-user"></i>' : '<i class="fa fa-robot"></i>'}
+                                </div>
+                            </div>
+                            <div>
+                                <p class="text-sm">${isUser ? '你' : 'AI助手'}</p>
+                                <p class="mt-1 text-gray-800">${text}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                chatArea.appendChild(messageElement);
+                
+                // 淡入动画
+                setTimeout(() => {
+                    messageElement.classList.remove('opacity-0', 'translate-y-4');
+                }, 10);
+                
+                // 检查是否需要扩展容器
+                checkAndExpandContainer();
+            }
+            
+            // 处理初始输入
+            function handleInitialInput() {
+                const text = initialInput.value.trim();
+                if (!text) return;
+                
+                // 获取初始输入框位置
+                const rect = initialInputContainer.getBoundingClientRect();
+                const chatAreaRect = chatArea.getBoundingClientRect();
+                
+                const x = rect.left - chatAreaRect.left + rect.width / 2;
+                const y = rect.top - chatAreaRect.top + rect.height + 20;
+                
+                // 添加用户消息
+                addMessage(text, x, y);
+                
+                // 隐藏初始输入框
+                initialInputContainer.classList.add('opacity-0');
+                
+                // 显示浮动输入框
+                setTimeout(() => {
+                    initialInputContainer.classList.add('hidden');
+                    
+                    // 定位浮动输入框
+                    floatingInputContainer.style.left = `${x}px`;
+                    floatingInputContainer.style.top = `${y + 60}px`;
+                    floatingInputContainer.classList.remove('hidden');
+                    
+                    // 设置当前位置
+                    conversationState.currentPosition = { x, y: y + 60 };
+                    
+                    // 聚焦浮动输入框
+                    floatingInput.focus();
+                }, 300);
+                
+                // 清空输入
+                initialInput.value = '';
+            }
+            
+            // 处理浮动输入
+            function handleFloatingInput() {
+                const text = floatingInput.value.trim();
+                if (!text) return;
+                
+                // 获取浮动输入框位置
+                const rect = floatingInputContainer.getBoundingClientRect();
+                const chatAreaRect = chatArea.getBoundingClientRect();
+                
+                const x = rect.left - chatAreaRect.left + rect.width / 2;
+                const y = rect.top - chatAreaRect.top + rect.height + 20;
+                
+                // 添加用户消息
+                addMessage(text, x, y);
+                
+                // 移动浮动输入框
+                floatingInputContainer.style.left = `${x}px`;
+                floatingInputContainer.style.top = `${y + 60}px`;
+                
+                // 设置当前位置
+                conversationState.currentPosition = { x, y: y + 60 };
+                
+                // 清空输入
+                floatingInput.value = '';
+            }
+            
+            // 移动浮动输入框
+            function moveFloatingInput(x, y) {
+                floatingInputContainer.style.left = `${x}px`;
+                floatingInputContainer.style.top = `${y}px`;
+                conversationState.currentPosition = { x, y };
+            }
+            
+            // 事件监听
+            initialSend.addEventListener('click', handleInitialInput);
+            initialInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') handleInitialInput();
+            });
+            
+            floatingSend.addEventListener('click', handleFloatingInput);
+            floatingInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') handleFloatingInput();
+            });
+            
+            // 缩放控制
+            zoomIn.addEventListener('click', () => {
+                conversationState.scale = Math.min(conversationState.scale + 0.1, 2);
+                updateChatAreaTransform();
+            });
+            
+            zoomOut.addEventListener('click', () => {
+                conversationState.scale = Math.max(conversationState.scale - 0.1, 0.5);
+                updateChatAreaTransform();
+            });
+            
+            // 移动控制
+            moveUp.addEventListener('click', () => {
+                conversationState.offsetY = Math.max(conversationState.offsetY - 50, 0);
+                updateChatAreaTransform();
+            });
+            
+            moveDown.addEventListener('click', () => {
+                conversationState.offsetY = Math.min(conversationState.offsetY + 50, conversationState.containerSize.height - conversationState.viewportSize.height);
+                updateChatAreaTransform();
+            });
+            
+            moveLeft.addEventListener('click', () => {
+                conversationState.offsetX = Math.max(conversationState.offsetX - 50, 0);
+                updateChatAreaTransform();
+            });
+            
+            moveRight.addEventListener('click', () => {
+                conversationState.offsetX = Math.min(conversationState.offsetX + 50, conversationState.containerSize.width - conversationState.viewportSize.width);
+                updateChatAreaTransform();
+            });
+            
+            // 拖拽功能
+            chatArea.addEventListener('mousedown', (e) => {
+                if (e.target === chatArea) {
+                    conversationState.isDragging = true;
+                    conversationState.lastDragX = e.clientX;
+                    conversationState.lastDragY = e.clientY;
+                    chatArea.style.cursor = 'grabbing';
+                }
+            });
+            
+            document.addEventListener('mousemove', (e) => {
+                if (conversationState.isDragging) {
+                    const dx = e.clientX - conversationState.lastDragX;
+                    const dy = e.clientY - conversationState.lastDragY;
+                    
+                    // 更新偏移量
+                    conversationState.offsetX -= dx;
+                    conversationState.offsetY -= dy;
+                    
+                    // 限制偏移量范围
+                    conversationState.offsetX = Math.max(0, Math.min(conversationState.offsetX, conversationState.containerSize.width - conversationState.viewportSize.width));
+                    conversationState.offsetY = Math.max(0, Math.min(conversationState.offsetY, conversationState.containerSize.height - conversationState.viewportSize.height));
+                    
+                    updateChatAreaTransform();
+                    
+                    // 更新最后拖拽位置
+                    conversationState.lastDragX = e.clientX;
+                    conversationState.lastDragY = e.clientY;
+                }
+            });
+            
+            document.addEventListener('mouseup', () => {
+                if (conversationState.isDragging) {
+                    conversationState.isDragging = false;
+                    chatArea.style.cursor = 'default';
+                }
+            });
+            
+            // 点击空白处移动输入框
+            chatArea.addEventListener('click', (e) => {
+                if (e.target === chatArea && !initialInputContainer.classList.contains('hidden')) {
+                    // 如果初始输入框可见，则忽略点击
+                    return;
+                }
+                
+                if (e.target === chatArea || e.target.closest('.user-message, .ai-message')) {
+                    const chatAreaRect = chatArea.getBoundingClientRect();
+                    const x = e.clientX - chatAreaRect.left;
+                    const y = e.clientY - chatAreaRect.top;
+                    
+                    // 移动浮动输入框
+                    moveFloatingInput(x, y);
+                    
+                    // 聚焦浮动输入框
+                    floatingInput.focus();
+                }
+            });
+            
+            // 窗口大小变化时更新视口
+            window.addEventListener('resize', () => {
+                updateViewportSize();
+                // 调整偏移量以保持居中
+                conversationState.offsetX = Math.max(0, Math.min(conversationState.offsetX, conversationState.containerSize.width - conversationState.viewportSize.width));
+                conversationState.offsetY = Math.max(0, Math.min(conversationState.offsetY, conversationState.containerSize.height - conversationState.viewportSize.height));
+                updateChatAreaTransform();
+            });
+            
+            // 初始化
+            initializeChatArea();
+        });
+    </script>
+</body>
+</html>

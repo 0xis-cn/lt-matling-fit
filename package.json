@@ -1,0 +1,27 @@
+{
+  "name": "lt-matling-fit",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build:css": "postcss src/css/main.css -o dist/style.css",
+    "watch:css": "postcss src/css/main.css -o dist/style.css --watch",
+    "start": "npm run build:css && live-server --no-browser"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@tailwindcss/postcss": "^4.1.11",
+    "tailwindcss": "^4.1.11"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.21",
+    "install": "^0.13.0",
+    "live-server": "^1.2.2",
+    "npm": "^11.4.2",
+    "postcss": "^8.5.6",
+    "postcss-cli": "^11.0.1",
+    "postcss-import": "^16.1.1",
+    "postcss-nested": "^7.0.2"
+  }
+}
