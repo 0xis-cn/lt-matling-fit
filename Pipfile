@@ -1,0 +1,16 @@
+[[source]]
+url = "https://mirror.lzu.edu.cn/pypi/web/simple"
+verify_ssl = true
+name = "pip_conf_index_global"
+
+[packages]
+pymilvus = {extras = ["milvus-lite"], version = "*"}
+langchain-milvus = "*"
+milvus-lite = "*"
+langchain-openai = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.11"
+python_full_version = "3.11.14"
