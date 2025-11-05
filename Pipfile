@@ -8,6 +8,7 @@ pymilvus = {extras = ["milvus-lite"], version = "*"}
 langchain-milvus = "*"
 milvus-lite = "*"
 langchain-openai = "*"
+langchain-text-splitters = "*"
 
 [dev-packages]
 
