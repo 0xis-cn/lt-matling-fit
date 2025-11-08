@@ -7,8 +7,13 @@ name = "pip_conf_index_global"
 pymilvus = {extras = ["milvus-lite"], version = "*"}
 langchain-milvus = "*"
 milvus-lite = "*"
-langchain-openai = "*"
 langchain-text-splitters = "*"
+whoosh = "*"
+jieba = "*"
+langchain = ">=0.2"
+langchain-openai = ">=0.1"
+pydantic = ">=2"
+python-dateutil = ">=2"
 
 [dev-packages]
 
